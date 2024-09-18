@@ -13,12 +13,12 @@ run this cmd from the root directory:
 import setuptools
 
 setuptools.setup(
-    name="deepspeed-chat",
+    name="dschat",
     version="0.1",
     url=
     "https://github.com/microsoft/DeepSpeedExamples/tree/master/applications/DeepSpeed-Chat",
     include_package_data=True,
-    packages=setuptools.find_packages(include=['dschat']),
+    packages=['dschat'],
     install_requires=[
         "datasets>=2.8.0", "sentencepiece>=0.1.97", "protobuf==3.20.3",
         "accelerate>=0.15.0", "torch>=1.12.0", "deepspeed>=0.9.2",

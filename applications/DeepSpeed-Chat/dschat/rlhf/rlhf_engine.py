@@ -44,19 +44,48 @@ class DeepSpeedRLHFEngine():
         self.args = args
         self.num_total_iters = num_total_iters
         self.tokenizer = tokenizer
-
+        print(f"before actor init  Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+        print(f"before actor init  Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
         self.actor = self._init_actor(
             actor_model_name_or_path=actor_model_name_or_path)
+
+        print(f"after actor init  Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+        print(f"after actor init  Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
         self.ref = self._init_ref(
             actor_model_name_or_path=actor_model_name_or_path)
+        
+        print(f"after ref init  Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+        print(f"after ref init  Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
+
+        if self.args.offload_test:
+            self.ref.cpu()
+            print(f"after ref moved to cpu Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            print(f"after ref moved to cpu Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
         self.actor_ema = None
         if self.args.enable_ema:
             self.actor_ema = self._init_ema(
                 actor_model_name_or_path=actor_model_name_or_path)
         self.critic = self._init_critic(
             critic_model_name_or_path=critic_model_name_or_path)
+        
+        print(f"after critic init Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+        print(f"after critic init Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
+        
+        if self.args.offload_test:
+            self.critic.offload_states()
+            print(f"after critic moved to cpu Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            print(f"after critic moved to cpu Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
+
         self.reward = self._init_reward(
             critic_model_name_or_path=critic_model_name_or_path)
+        
+        print(f"after reward init Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+        print(f"after reward init to cpu Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
+
+        if self.args.offload_test:
+            self.reward.cpu()
+            print(f"after reward moved to cpu Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            print(f"after reward moved to cpu Reserved Memory: {torch.cuda.memory_reserved() / 1024 ** 3:.2f} GB")
         if self.args.critic_gradient_checkpointing:
             self.critic.gradient_checkpointing_enable()
 

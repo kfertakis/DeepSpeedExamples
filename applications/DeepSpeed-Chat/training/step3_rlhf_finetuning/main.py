@@ -237,6 +237,9 @@ def parse_args():
     parser.add_argument('--offload',
                         action='store_true',
                         help='Enable ZeRO Offload techniques.')
+    parser.add_argument('--offload_test',
+                        action='store_true',
+                        help='offload api test')
     parser.add_argument('--dtype',
                         type=str,
                         default='fp16',

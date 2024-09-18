@@ -151,13 +151,36 @@ class DeepSpeedPPOTrainer():
         attention_mask = seq.not_equal(pad_token_id).long()
         with torch.no_grad():
             output = self.actor_model(seq, attention_mask=attention_mask)
+            if self.args.offload_test:
+                print(f"before actor offload Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+                self.actor_model.offload_states()
+                print(f"after actor offload Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+                self.ref_model.cuda()
+                print(f"after reff brought back Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
             output_ref = self.ref_model(seq, attention_mask=attention_mask)
+            if self.args.offload_test:
+                self.ref_model.cpu()
+                print(f"after reff offload Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+                self.reward_model.cuda()
+            
+                print(f"after rew brought back Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+
             reward_score = self.reward_model.forward_value(
                 seq, attention_mask,
                 prompt_length=self.prompt_length)['chosen_end_scores'].detach(
                 )
+            if self.args.offload_test:
+                self.reward_model.cpu()
+                print(f"after rew offload Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+                self.critic_model.reload_states()
+                print(f"after critic brought back Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
             values = self.critic_model.forward_value(
                 seq, attention_mask, return_value_only=True).detach()[:, :-1]
+            if self.args.offload_test:
+                self.critic_model.offload_states()
+                print(f"after critic offload Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+                self.actor_model.reload_states()
+                print(f"after actor brought back Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
 
         logits = output.logits
         logits_ref = output_ref.logits
@@ -232,6 +255,12 @@ class DeepSpeedPPOTrainer():
 
         if not self.args.align_overflow:
             self.actor_model.step()
+        if self.args.offload_test:
+            print(f"before actor offload to cpu memory Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            self.actor_model.offload_states()
+            print(f"after actor offload to cpu memory Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            self.critic_model.reload_states()
+            print(f"after critic brought back Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
 
         value = self.critic_model.forward_value(**batch,
                                                 return_value_only=True,
@@ -266,6 +295,11 @@ class DeepSpeedPPOTrainer():
 
         self.critic_model.step()
 
+        if self.args.offload_test:
+            self.critic_model.offload_states()
+            print(f"after critic offload to cpu memory Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            self.actor_model.reload_states()
+            print(f"after actor brought back Allocated Memory: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
         return actor_loss, critic_loss
 
     def get_overflow(self):

@@ -33,12 +33,12 @@ def get_train_ds_config(offload,
         dtype_config = {"enabled": True}
     zero_opt_dict = {
         "stage": stage,
-        "offload_param": {
-            "device": device
-        },
-        "offload_optimizer": {
-            "device": device
-        },
+        # "offload_param": {
+        #     "device": device
+        # },
+        # "offload_optimizer": {
+        #     "device": device
+        # },
         "stage3_param_persistence_threshold": 1e4,
         "stage3_max_live_parameters": 3e7,
         "stage3_prefetch_bucket_size": 3e7,
@@ -87,9 +87,9 @@ def get_eval_ds_config(offload, dtype, stage=0):
     zero_opt_dict = {
         "stage": stage,
         "stage3_param_persistence_threshold": 1e4,
-        "offload_param": {
-            "device": device
-        },
+        # "offload_param": {
+        #     "device": device
+        # },
         "memory_efficient_linear": False
     }
     return {
